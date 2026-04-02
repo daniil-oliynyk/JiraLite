@@ -91,7 +91,11 @@ export async function createProjectAction(formData: FormData) {
   const teamSpaceId = String(formData.get("teamSpaceId") ?? "");
   const name = String(formData.get("name") ?? "").trim();
   const description = String(formData.get("description") ?? "").trim();
-  const visibilityRaw = String(formData.get("visibility") ?? ProjectVisibility.MEMBERS_ONLY);
+  const makePrivate = String(formData.get("makePrivate") ?? "") === "on";
+  const invitedUserIds = formData
+    .getAll("shareUserIds")
+    .map((value) => String(value))
+    .filter(Boolean);
 
   if (!teamSpaceId || !name) {
     return;
@@ -110,7 +114,26 @@ export async function createProjectAction(formData: FormData) {
     return;
   }
 
-  const visibility = visibilityRaw === ProjectVisibility.TEAM_VISIBLE ? ProjectVisibility.TEAM_VISIBLE : ProjectVisibility.MEMBERS_ONLY;
+  const visibility = makePrivate ? ProjectVisibility.MEMBERS_ONLY : ProjectVisibility.TEAM_VISIBLE;
+
+  const allowedInvitedMembers = makePrivate
+    ? await prisma.teamMembership.findMany({
+        where: {
+          teamSpaceId,
+          userId: {
+            in: invitedUserIds,
+          },
+        },
+        select: { userId: true },
+      })
+    : [];
+
+  const membershipUserIds = Array.from(
+    new Set([
+      user.id,
+      ...allowedInvitedMembers.map((member) => member.userId),
+    ]),
+  );
 
   const project = await prisma.project.create({
     data: {
@@ -120,9 +143,9 @@ export async function createProjectAction(formData: FormData) {
       visibility,
       createdById: user.id,
       memberships: {
-        create: {
-          userId: user.id,
-        },
+        create: membershipUserIds.map((memberUserId) => ({
+          userId: memberUserId,
+        })),
       },
     },
   });

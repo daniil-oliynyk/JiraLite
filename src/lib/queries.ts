@@ -5,17 +5,37 @@ import { ProjectVisibility, TaskStatus, TeamRole } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 
 export async function getWorkspaceSidebarData(userId: string) {
-  const spaces = await prisma.teamMembership.findMany({
+  const memberships = await prisma.teamMembership.findMany({
     where: { userId },
     include: {
       teamSpace: {
-        select: { id: true, name: true },
+        select: {
+          id: true,
+          name: true,
+          memberships: {
+            select: {
+              user: {
+                select: { id: true, email: true },
+              },
+            },
+            orderBy: { createdAt: "asc" },
+          },
+          projects: {
+            select: { id: true, name: true, visibility: true },
+            orderBy: { createdAt: "asc" },
+          },
+        },
       },
     },
     orderBy: { createdAt: "asc" },
   });
 
-  return spaces.map((m) => m.teamSpace);
+  return memberships.map((m) => ({
+    id: m.teamSpace.id,
+    name: m.teamSpace.name,
+    projects: m.teamSpace.projects,
+    members: m.teamSpace.memberships.map((membership) => membership.user),
+  }));
 }
 
 export async function getWorkspaceOverview(userId: string) {
