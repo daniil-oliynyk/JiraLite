@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { Route } from "next";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -57,6 +57,10 @@ export function AppSidebar({ teamSpaces }: { teamSpaces: TeamSpace[] }) {
   const [showSharePopover, setShowSharePopover] = useState(false);
   const [memberSearch, setMemberSearch] = useState("");
   const [sharedUserIds, setSharedUserIds] = useState<string[]>([]);
+  const actionMenuButtonRef = useRef<HTMLButtonElement | null>(null);
+  const actionMenuPopoverRef = useRef<HTMLDivElement | null>(null);
+  const sharePopoverButtonRef = useRef<HTMLButtonElement | null>(null);
+  const sharePopoverRef = useRef<HTMLDivElement | null>(null);
 
   const selectedProjectSpace = teamSpaces.find((space) => space.id === projectTeamSpaceId);
   const filteredTeamSpaces = teamSpaces.filter((space) =>
@@ -66,6 +70,52 @@ export function AppSidebar({ teamSpaces }: { teamSpaces: TeamSpace[] }) {
   const filteredMembers = availableMembers.filter((member) =>
     member.email.toLowerCase().includes(memberSearch.toLowerCase()),
   );
+
+  useEffect(() => {
+    function handlePointerDown(event: MouseEvent) {
+      const target = event.target as Node;
+
+      if (
+        actionMenuSpaceId &&
+        actionMenuPopoverRef.current &&
+        !actionMenuPopoverRef.current.contains(target) &&
+        !actionMenuButtonRef.current?.contains(target)
+      ) {
+        setActionMenuSpaceId(null);
+      }
+
+      if (
+        showSharePopover &&
+        sharePopoverRef.current &&
+        !sharePopoverRef.current.contains(target) &&
+        !sharePopoverButtonRef.current?.contains(target)
+      ) {
+        setShowSharePopover(false);
+      }
+    }
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key !== "Escape") {
+        return;
+      }
+
+      if (actionMenuSpaceId) {
+        setActionMenuSpaceId(null);
+      }
+
+      if (showSharePopover) {
+        setShowSharePopover(false);
+      }
+    }
+
+    document.addEventListener("mousedown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.removeEventListener("mousedown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [actionMenuSpaceId, showSharePopover]);
 
   return (
     <>
@@ -121,6 +171,7 @@ export function AppSidebar({ teamSpaces }: { teamSpaces: TeamSpace[] }) {
                           </div>
                         </SidebarMenuButton>
                         <SidebarMenuAction
+                          ref={actionMenuSpaceId === space.id ? actionMenuButtonRef : undefined}
                           aria-label={`Team Space actions for ${space.name}`}
                           onClick={() =>
                             setActionMenuSpaceId((prev) => (prev === space.id ? null : space.id))
@@ -129,7 +180,10 @@ export function AppSidebar({ teamSpaces }: { teamSpaces: TeamSpace[] }) {
                           <Plus className="size-3.5" />
                         </SidebarMenuAction>
                         {actionMenuSpaceId === space.id && (
-                          <div className="absolute right-2 top-8 z-20 min-w-40 rounded-md border border-border bg-popover p-1 shadow-md">
+                          <div
+                            ref={actionMenuPopoverRef}
+                            className="absolute right-2 top-8 z-20 min-w-40 rounded-md border border-border bg-popover p-1 shadow-md"
+                          >
                             <button
                               type="button"
                               onClick={() => {
@@ -302,7 +356,16 @@ export function AppSidebar({ teamSpaces }: { teamSpaces: TeamSpace[] }) {
                 type="button"
                 role="switch"
                 aria-checked={makeProjectPrivate}
-                onClick={() => setMakeProjectPrivate((prev) => !prev)}
+                onClick={() =>
+                  setMakeProjectPrivate((prev) => {
+                    const next = !prev;
+                    if (!next) {
+                      setShowSharePopover(false);
+                      setMemberSearch("");
+                    }
+                    return next;
+                  })
+                }
                 className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
                   makeProjectPrivate ? "bg-primary" : "bg-muted"
                 }`}
@@ -321,6 +384,7 @@ export function AppSidebar({ teamSpaces }: { teamSpaces: TeamSpace[] }) {
                   <Label>Share with</Label>
                   <div className="relative">
                     <button
+                      ref={sharePopoverButtonRef}
                       type="button"
                       onClick={() => setShowSharePopover((prev) => !prev)}
                       className="flex size-8 items-center justify-center rounded-md border border-border text-muted-foreground hover:text-foreground"
@@ -328,7 +392,10 @@ export function AppSidebar({ teamSpaces }: { teamSpaces: TeamSpace[] }) {
                       <Search className="size-4" />
                     </button>
                     {showSharePopover && (
-                      <div className="absolute right-0 top-10 z-30 w-72 rounded-md border border-border bg-popover p-2 shadow-md">
+                      <div
+                        ref={sharePopoverRef}
+                        className="absolute right-0 top-10 z-30 w-72 rounded-md border border-border bg-popover p-2 shadow-md"
+                      >
                         <Input
                           placeholder="Search members..."
                           value={memberSearch}

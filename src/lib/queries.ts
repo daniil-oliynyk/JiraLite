@@ -80,7 +80,17 @@ export async function getProjectBoardData(projectId: string) {
   return prisma.project.findUnique({
     where: { id: projectId },
     include: {
-      teamSpace: true,
+      teamSpace: {
+        include: {
+          memberships: {
+            include: {
+              user: {
+                select: { id: true, email: true },
+              },
+            },
+          },
+        },
+      },
       memberships: {
         include: {
           user: {
