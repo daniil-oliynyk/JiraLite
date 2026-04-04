@@ -23,7 +23,7 @@ import { CSS } from "@dnd-kit/utilities";
 import { useRouter } from "next/navigation";
 import { CommentType, TaskPriority, TaskStatus } from "@prisma/client";
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
-import { Calendar, CheckCircle2, Clock3, Flag, GripVertical, LayoutGrid, List, Plus, UserCircle2 } from "lucide-react";
+import { Calendar, CheckCircle2, ChevronDown, Clock3, Flag, GripVertical, LayoutGrid, List, Plus, Search, Send, UserCircle2 } from "lucide-react";
 
 import { createTaskAction } from "@/app/actions";
 import { Button } from "@/components/ui/button";
@@ -132,21 +132,59 @@ function TaskDetailsDialog({
   onClose,
   projectId,
   task,
+  assignees,
   onDescriptionSaved,
+  onAssigneeSaved,
+  onTaskDetailsSaved,
   onCommentAdded,
 }: {
   open: boolean;
   onClose: () => void;
   projectId: string;
   task: TaskCard | null;
+  assignees: { id: string; email: string }[];
   onDescriptionSaved: (taskId: string, description: string | null, activity: TaskComment | null) => void;
+  onAssigneeSaved: (
+    taskId: string,
+    assigneeId: string | null,
+    assigneeEmail: string | null,
+    activity: TaskComment | null,
+  ) => void;
+  onTaskDetailsSaved: (
+    taskId: string,
+    updates: Partial<Pick<TaskCard, "priority" | "estimationMinutes" | "dueDate">>,
+    activity: TaskComment | null,
+  ) => void;
   onCommentAdded: (taskId: string, comment: TaskComment) => void;
 }) {
   const [isEditingDescription, setIsEditingDescription] = useState(false);
   const [descriptionDraft, setDescriptionDraft] = useState("");
+  const [assigneeDraft, setAssigneeDraft] = useState("");
   const [commentDraft, setCommentDraft] = useState("");
+  const [showAssigneePopover, setShowAssigneePopover] = useState(false);
+  const [assigneeSearch, setAssigneeSearch] = useState("");
+  const [priorityDraft, setPriorityDraft] = useState<TaskPriority>(TaskPriority.MEDIUM);
+  const [showPriorityPopover, setShowPriorityPopover] = useState(false);
+  const [estimationDraft, setEstimationDraft] = useState("");
+  const [isEditingEstimation, setIsEditingEstimation] = useState(false);
+  const [dueDateDraft, setDueDateDraft] = useState("");
+  const [showDueDatePopover, setShowDueDatePopover] = useState(false);
   const [savingDescription, setSavingDescription] = useState(false);
+  const [savingAssignee, setSavingAssignee] = useState(false);
+  const [savingPriority, setSavingPriority] = useState(false);
+  const [savingEstimation, setSavingEstimation] = useState(false);
+  const [savingDueDate, setSavingDueDate] = useState(false);
   const [sendingComment, setSendingComment] = useState(false);
+  const assigneePopoverButtonRef = useRef<HTMLButtonElement | null>(null);
+  const assigneePopoverRef = useRef<HTMLDivElement | null>(null);
+  const priorityPopoverButtonRef = useRef<HTMLButtonElement | null>(null);
+  const priorityPopoverRef = useRef<HTMLDivElement | null>(null);
+  const dueDatePopoverButtonRef = useRef<HTMLButtonElement | null>(null);
+  const dueDatePopoverRef = useRef<HTMLDivElement | null>(null);
+
+  const filteredAssignees = assignees.filter((assignee) =>
+    assignee.email.toLowerCase().includes(assigneeSearch.toLowerCase()),
+  );
 
   useEffect(() => {
     if (!task) {
@@ -155,14 +193,256 @@ function TaskDetailsDialog({
 
     setDescriptionDraft(task.description ?? "");
     setIsEditingDescription(Boolean(task.description));
+    setAssigneeDraft(task.assigneeId ?? "");
+    setPriorityDraft(task.priority);
+    setEstimationDraft(task.estimationMinutes !== null ? formatDurationFromMinutes(task.estimationMinutes) : "");
+    setIsEditingEstimation(false);
+    setDueDateDraft(task.dueDate ? task.dueDate.slice(0, 10) : "");
     setCommentDraft("");
-  }, [task?.id, task?.description, open]);
+    setAssigneeSearch("");
+    setShowAssigneePopover(false);
+    setShowPriorityPopover(false);
+    setShowDueDatePopover(false);
+  }, [task?.id, task?.description, task?.assigneeId, task?.priority, task?.estimationMinutes, task?.dueDate, open]);
+
+  useEffect(() => {
+    if (!showAssigneePopover) {
+      return;
+    }
+
+    function handlePointerDown(event: MouseEvent) {
+      const target = event.target as Node;
+
+      if (
+        assigneePopoverRef.current &&
+        !assigneePopoverRef.current.contains(target) &&
+        !assigneePopoverButtonRef.current?.contains(target)
+      ) {
+        setShowAssigneePopover(false);
+      }
+    }
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setShowAssigneePopover(false);
+      }
+    }
+
+    document.addEventListener("mousedown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.removeEventListener("mousedown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [showAssigneePopover]);
+
+  useEffect(() => {
+    if (!showPriorityPopover) {
+      return;
+    }
+
+    function handlePointerDown(event: MouseEvent) {
+      const target = event.target as Node;
+
+      if (
+        priorityPopoverRef.current &&
+        !priorityPopoverRef.current.contains(target) &&
+        !priorityPopoverButtonRef.current?.contains(target)
+      ) {
+        setShowPriorityPopover(false);
+      }
+    }
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setShowPriorityPopover(false);
+      }
+    }
+
+    document.addEventListener("mousedown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.removeEventListener("mousedown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [showPriorityPopover]);
+
+  useEffect(() => {
+    if (!showDueDatePopover) {
+      return;
+    }
+
+    function handlePointerDown(event: MouseEvent) {
+      const target = event.target as Node;
+
+      if (
+        dueDatePopoverRef.current &&
+        !dueDatePopoverRef.current.contains(target) &&
+        !dueDatePopoverButtonRef.current?.contains(target)
+      ) {
+        setShowDueDatePopover(false);
+      }
+    }
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setShowDueDatePopover(false);
+      }
+    }
+
+    document.addEventListener("mousedown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.removeEventListener("mousedown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [showDueDatePopover]);
 
   if (!open || !task) {
     return null;
   }
 
   const currentTask = task;
+
+  async function saveAssignee(nextAssigneeId: string) {
+    const currentAssigneeId = currentTask.assigneeId ?? "";
+    if (nextAssigneeId === currentAssigneeId) {
+      setShowAssigneePopover(false);
+      setAssigneeSearch("");
+      return;
+    }
+
+    setSavingAssignee(true);
+    try {
+      const response = await fetch(`/api/tasks/${currentTask.id}/assignee`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          projectId,
+          assigneeId: nextAssigneeId || null,
+        }),
+      });
+
+      if (!response.ok) {
+        setAssigneeDraft(currentAssigneeId);
+        return;
+      }
+
+      const payload = (await response.json()) as {
+        assigneeId: string | null;
+        assigneeEmail: string | null;
+        activity: TaskComment | null;
+      };
+
+      onAssigneeSaved(currentTask.id, payload.assigneeId, payload.assigneeEmail, payload.activity ?? null);
+      setAssigneeDraft(payload.assigneeId ?? "");
+      setShowAssigneePopover(false);
+      setAssigneeSearch("");
+    } finally {
+      setSavingAssignee(false);
+    }
+  }
+
+  const selectedAssigneeLabel =
+    assigneeDraft.length > 0
+      ? assignees.find((assignee) => assignee.id === assigneeDraft)?.email ?? currentTask.assigneeEmail ?? "Unknown"
+      : "Unassigned";
+
+  async function saveTaskDetails(updates: {
+    priority?: TaskPriority;
+    estimation?: string;
+    dueDate?: string | null;
+  }) {
+    const response = await fetch(`/api/tasks/${currentTask.id}/details`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ projectId, ...updates }),
+    });
+
+    if (!response.ok) {
+      return null;
+    }
+
+    return (await response.json()) as {
+      priority: TaskPriority;
+      estimationMinutes: number | null;
+      dueDate: string | null;
+      activity: TaskComment | null;
+    };
+  }
+
+  async function savePriority(nextPriority: TaskPriority) {
+    if (nextPriority === currentTask.priority) {
+      setShowPriorityPopover(false);
+      return;
+    }
+
+    setSavingPriority(true);
+    try {
+      const payload = await saveTaskDetails({ priority: nextPriority });
+      if (!payload) {
+        setPriorityDraft(currentTask.priority);
+        return;
+      }
+
+      setPriorityDraft(payload.priority);
+      onTaskDetailsSaved(currentTask.id, { priority: payload.priority }, payload.activity ?? null);
+      setShowPriorityPopover(false);
+    } finally {
+      setSavingPriority(false);
+    }
+  }
+
+  async function saveEstimation() {
+    const trimmed = estimationDraft.trim();
+    const current = currentTask.estimationMinutes !== null ? formatDurationFromMinutes(currentTask.estimationMinutes) : "";
+    if (trimmed === current) {
+      setIsEditingEstimation(false);
+      return;
+    }
+
+    setSavingEstimation(true);
+    try {
+      const payload = await saveTaskDetails({ estimation: trimmed });
+      if (!payload) {
+        setEstimationDraft(current);
+        return;
+      }
+
+      setEstimationDraft(payload.estimationMinutes !== null ? formatDurationFromMinutes(payload.estimationMinutes) : "");
+      onTaskDetailsSaved(currentTask.id, { estimationMinutes: payload.estimationMinutes }, payload.activity ?? null);
+      setIsEditingEstimation(false);
+    } finally {
+      setSavingEstimation(false);
+    }
+  }
+
+  async function saveDueDate(nextDueDate: string) {
+    const next = nextDueDate || "";
+    const current = currentTask.dueDate ? currentTask.dueDate.slice(0, 10) : "";
+    if (next === current) {
+      setShowDueDatePopover(false);
+      return;
+    }
+
+    setSavingDueDate(true);
+    try {
+      const payload = await saveTaskDetails({ dueDate: next || null });
+      if (!payload) {
+        setDueDateDraft(current);
+        return;
+      }
+
+      setDueDateDraft(payload.dueDate ? payload.dueDate.slice(0, 10) : "");
+      onTaskDetailsSaved(currentTask.id, { dueDate: payload.dueDate }, payload.activity ?? null);
+      setShowDueDatePopover(false);
+    } finally {
+      setSavingDueDate(false);
+    }
+  }
 
   async function saveDescription() {
     const trimmed = descriptionDraft.trim();
@@ -246,19 +526,194 @@ function TaskDetailsDialog({
               </div>
               <div className="space-y-1 text-sm">
                 <p className="inline-flex items-center gap-2 text-slate-400"><Flag className="size-3.5" /> Priority</p>
-                <p className="text-slate-200">{currentTask.priority}</p>
+                <div className="relative">
+                  <button
+                    ref={priorityPopoverButtonRef}
+                    type="button"
+                    disabled={savingPriority}
+                    onClick={() => setShowPriorityPopover((prev) => !prev)}
+                    className="inline-flex max-w-full items-center gap-1 rounded px-1 py-0.5 text-left text-slate-200 transition-colors hover:bg-[#0b1728] hover:text-slate-100 disabled:opacity-60"
+                  >
+                    <span className="truncate border-transparent">{priorityDraft}</span>
+                    <ChevronDown className="size-3.5 text-slate-400" />
+                  </button>
+
+                  {showPriorityPopover && (
+                    <div
+                      ref={priorityPopoverRef}
+                      className="absolute left-0 top-9 z-30 w-52 rounded-md border border-[#1a2a3d] bg-[#060f1d] p-2 shadow-md"
+                    >
+                      <div className="max-h-48 space-y-1 overflow-y-auto">
+                        {PRIORITY_OPTIONS.map((priority) => (
+                          <button
+                            key={priority}
+                            type="button"
+                            onClick={() => {
+                              setPriorityDraft(priority);
+                              void savePriority(priority);
+                            }}
+                            className={cn(
+                              "flex w-full items-center rounded-sm px-2 py-1.5 text-left text-sm text-slate-200 hover:bg-[#101b2c]",
+                              priorityDraft === priority && "bg-[#101b2c]",
+                            )}
+                          >
+                            {priority.charAt(0) + priority.slice(1).toLowerCase()}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+                {savingPriority ? <p className="text-xs text-slate-500">Saving priority...</p> : null}
               </div>
               <div className="space-y-1 text-sm">
                 <p className="inline-flex items-center gap-2 text-slate-400"><UserCircle2 className="size-3.5" /> Assignee</p>
-                <p className="text-slate-200">{currentTask.assigneeEmail ?? "Unassigned"}</p>
+                <div className="relative">
+                  <button
+                    ref={assigneePopoverButtonRef}
+                    type="button"
+                    disabled={savingAssignee}
+                    onClick={() => setShowAssigneePopover((prev) => !prev)}
+                    className="inline-flex max-w-full items-center gap-1 rounded px-1 py-0.5 text-left text-slate-200 transition-colors hover:bg-[#0b1728] hover:text-slate-100 disabled:opacity-60"
+                  >
+                    <span className="truncate  border-transparent hover:border-slate-500">{selectedAssigneeLabel}</span>
+                    <ChevronDown className="size-3.5 text-slate-400" />
+                  </button>
+
+                  {showAssigneePopover && (
+                    <div
+                      ref={assigneePopoverRef}
+                      className="absolute left-0 top-9 z-30 w-72 rounded-md border border-[#1a2a3d] bg-[#060f1d] p-2 shadow-md"
+                    >
+                      <div className="relative">
+                        <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-slate-500" />
+                        <Input
+                          value={assigneeSearch}
+                          onChange={(event) => setAssigneeSearch(event.target.value)}
+                          placeholder="Search assignees..."
+                          className="h-9 border-[#132134] bg-[#040b16] pl-8 text-sm text-slate-100 placeholder:text-slate-500"
+                        />
+                      </div>
+
+                      <div className="mt-2 max-h-48 space-y-1 overflow-y-auto">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setAssigneeDraft("");
+                            void saveAssignee("");
+                          }}
+                          className={cn(
+                            "flex w-full items-center rounded-sm px-2 py-1.5 text-left text-sm text-slate-200 hover:bg-[#101b2c]",
+                            assigneeDraft === "" && "bg-[#101b2c]",
+                          )}
+                        >
+                          Unassigned
+                        </button>
+
+                        {filteredAssignees.map((assignee) => (
+                          <button
+                            key={assignee.id}
+                            type="button"
+                            onClick={() => {
+                              setAssigneeDraft(assignee.id);
+                              void saveAssignee(assignee.id);
+                            }}
+                            className={cn(
+                              "flex w-full items-center rounded-sm px-2 py-1.5 text-left text-sm text-slate-200 hover:bg-[#101b2c]",
+                              assigneeDraft === assignee.id && "bg-[#101b2c]",
+                            )}
+                          >
+                            <span className="truncate">{assignee.email}</span>
+                          </button>
+                        ))}
+
+                        {filteredAssignees.length === 0 ? (
+                          <p className="px-2 py-1.5 text-sm text-slate-500">No assignees found.</p>
+                        ) : null}
+                      </div>
+                    </div>
+                  )}
+                </div>
+                {savingAssignee ? <p className="text-xs text-slate-500">Saving assignee...</p> : null}
               </div>
               <div className="space-y-1 text-sm">
                 <p className="inline-flex items-center gap-2 text-slate-400"><Clock3 className="size-3.5" /> Estimation</p>
-                <p className="text-slate-200">{formatDurationFromMinutes(currentTask.estimationMinutes)}</p>
+                {isEditingEstimation ? (
+                  <Input
+                    value={estimationDraft}
+                    autoFocus
+                    onChange={(event) => setEstimationDraft(event.target.value)}
+                    onBlur={() => {
+                      void saveEstimation();
+                    }}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter") {
+                        event.preventDefault();
+                        void saveEstimation();
+                      }
+                      if (event.key === "Escape") {
+                        setEstimationDraft(currentTask.estimationMinutes !== null ? formatDurationFromMinutes(currentTask.estimationMinutes) : "");
+                        setIsEditingEstimation(false);
+                      }
+                    }}
+                    placeholder="e.g. 2h"
+                    className="h-8 border-[#132134] bg-[#040b16] text-sm text-slate-100 placeholder:text-slate-500"
+                  />
+                ) : (
+                  <button
+                    type="button"
+                    disabled={savingEstimation}
+                    onClick={() => setIsEditingEstimation(true)}
+                    className="h-8 w-full rounded px-1 py-0.5 text-left text-slate-200 transition-colors hover:bg-[#0b1728] hover:text-slate-100 disabled:opacity-60"
+                  >
+                    {formatDurationFromMinutes(currentTask.estimationMinutes)}
+                  </button>
+                )}
+                {savingEstimation ? <p className="text-xs text-slate-500">Saving estimation...</p> : null}
               </div>
               <div className="space-y-1 text-sm sm:col-span-2">
                 <p className="inline-flex items-center gap-2 text-slate-400"><Calendar className="size-3.5" /> Due Date</p>
-                <p className="text-slate-200">{currentTask.dueDate ? formatDateTimeLabel(currentTask.dueDate) : "No due date"}</p>
+                <div className="relative">
+                  <button
+                    ref={dueDatePopoverButtonRef}
+                    type="button"
+                    disabled={savingDueDate}
+                    onClick={() => setShowDueDatePopover((prev) => !prev)}
+                    className="inline-flex items-center gap-1 rounded px-1 py-0.5 text-slate-200 transition-colors hover:bg-[#0b1728] hover:text-slate-100 disabled:opacity-60"
+                  >
+                    <span>{currentTask.dueDate ? formatDateTimeLabel(currentTask.dueDate) : "No due date"}</span>
+                    <ChevronDown className="size-3.5 text-slate-400" />
+                  </button>
+
+                  {showDueDatePopover && (
+                    <div
+                      ref={dueDatePopoverRef}
+                      className="absolute left-0 top-9 z-30 w-64 rounded-md border border-[#1a2a3d] bg-[#060f1d] p-2 shadow-md"
+                    >
+                      <Input
+                        type="date"
+                        value={dueDateDraft}
+                        onChange={(event) => {
+                          const nextDate = event.target.value;
+                          setDueDateDraft(nextDate);
+                          void saveDueDate(nextDate);
+                        }}
+                        className="h-9 border-[#132134] bg-[#040b16] text-sm text-slate-100"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setDueDateDraft("");
+                          void saveDueDate("");
+                        }}
+                        className="mt-2 text-xs text-slate-400 hover:text-slate-200"
+                      >
+                        Clear due date
+                      </button>
+                    </div>
+                  )}
+                </div>
+                {savingDueDate ? <p className="text-xs text-slate-500">Saving due date...</p> : null}
               </div>
             </div>
 
@@ -323,22 +778,22 @@ function TaskDetailsDialog({
           </div>
 
           <div className="border-t border-[#132134] p-3">
-            <Textarea
-              value={commentDraft}
-              onChange={(event) => setCommentDraft(event.target.value)}
-              placeholder="Write a comment..."
-              className="min-h-[88px] border-[#132134] bg-[#060f1d] text-sm text-slate-100 placeholder:text-slate-500"
-            />
-            <div className="mt-2 flex justify-end">
-              <Button
+            <div className="relative">
+              <Textarea
+                value={commentDraft}
+                onChange={(event) => setCommentDraft(event.target.value)}
+                placeholder="Write a comment..."
+                className="min-h-[88px] border-[#132134] bg-[#060f1d] pr-10 text-sm text-slate-100 placeholder:text-slate-500"
+              />
+              <button
                 type="button"
-                size="sm"
                 disabled={sendingComment || !commentDraft.trim()}
                 onClick={submitComment}
-                className="bg-sky-600 hover:bg-sky-500"
+                aria-label={sendingComment ? "Sending comment" : "Send comment"}
+                className="absolute bottom-2 right-2 inline-flex size-7 items-center justify-center rounded-md text-slate-400 transition-colors hover:bg-[#0b1728] hover:text-sky-300 disabled:cursor-not-allowed disabled:opacity-50"
               >
-                {sendingComment ? "Posting..." : "Comment"}
-              </Button>
+                <Send className="size-4" />
+              </button>
             </div>
           </div>
         </aside>
@@ -950,10 +1405,26 @@ export function KanbanBoard({ projectId, projectName, projectDescription, tasks:
         onClose={() => setSelectedTaskId(null)}
         projectId={projectId}
         task={selectedTask}
+        assignees={assignees}
         onDescriptionSaved={(taskId, description, activity) => {
           applyTaskUpdate(taskId, (task) => ({
             ...task,
             description,
+            comments: activity ? [activity, ...task.comments] : task.comments,
+          }));
+        }}
+        onAssigneeSaved={(taskId, assigneeId, assigneeEmail, activity) => {
+          applyTaskUpdate(taskId, (task) => ({
+            ...task,
+            assigneeId,
+            assigneeEmail,
+            comments: activity ? [activity, ...task.comments] : task.comments,
+          }));
+        }}
+        onTaskDetailsSaved={(taskId, updates, activity) => {
+          applyTaskUpdate(taskId, (task) => ({
+            ...task,
+            ...updates,
             comments: activity ? [activity, ...task.comments] : task.comments,
           }));
         }}
