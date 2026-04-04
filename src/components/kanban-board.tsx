@@ -21,9 +21,9 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { useRouter } from "next/navigation";
-import { TaskPriority, TaskStatus } from "@prisma/client";
+import { CommentType, TaskPriority, TaskStatus } from "@prisma/client";
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
-import { CheckCircle2, Clock3, LayoutGrid, List, Plus } from "lucide-react";
+import { Calendar, CheckCircle2, Clock3, Flag, GripVertical, LayoutGrid, List, Plus, UserCircle2 } from "lucide-react";
 
 import { createTaskAction } from "@/app/actions";
 import { Button } from "@/components/ui/button";
@@ -37,11 +37,22 @@ import { cn, formatDurationFromMinutes } from "@/lib/utils";
 type TaskCard = {
   id: string;
   title: string;
+  description: string | null;
   status: TaskStatus;
   priority: TaskPriority;
   estimationMinutes: number | null;
   dueDate: string | null;
+  assigneeId: string | null;
   assigneeEmail: string | null;
+  comments: TaskComment[];
+};
+
+type TaskComment = {
+  id: string;
+  type: CommentType;
+  content: string;
+  createdAt: string;
+  userEmail: string;
 };
 
 type KanbanBoardProps = {
@@ -58,6 +69,15 @@ type DragData = {
 };
 
 const PRIORITY_OPTIONS: TaskPriority[] = [TaskPriority.LOW, TaskPriority.MEDIUM, TaskPriority.HIGH, TaskPriority.URGENT];
+
+function formatDateTimeLabel(value: string) {
+  return new Date(value).toLocaleString(undefined, {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
 
 function PriorityPill({ priority }: { priority: TaskPriority }) {
   const tone =
@@ -107,7 +127,227 @@ function TaskCardPreview({ task }: { task: TaskCard }) {
   );
 }
 
-function SortableTaskCard({ task }: { task: TaskCard }) {
+function TaskDetailsDialog({
+  open,
+  onClose,
+  projectId,
+  task,
+  onDescriptionSaved,
+  onCommentAdded,
+}: {
+  open: boolean;
+  onClose: () => void;
+  projectId: string;
+  task: TaskCard | null;
+  onDescriptionSaved: (taskId: string, description: string | null, activity: TaskComment | null) => void;
+  onCommentAdded: (taskId: string, comment: TaskComment) => void;
+}) {
+  const [isEditingDescription, setIsEditingDescription] = useState(false);
+  const [descriptionDraft, setDescriptionDraft] = useState("");
+  const [commentDraft, setCommentDraft] = useState("");
+  const [savingDescription, setSavingDescription] = useState(false);
+  const [sendingComment, setSendingComment] = useState(false);
+
+  useEffect(() => {
+    if (!task) {
+      return;
+    }
+
+    setDescriptionDraft(task.description ?? "");
+    setIsEditingDescription(Boolean(task.description));
+    setCommentDraft("");
+  }, [task?.id, task?.description, open]);
+
+  if (!open || !task) {
+    return null;
+  }
+
+  const currentTask = task;
+
+  async function saveDescription() {
+    const trimmed = descriptionDraft.trim();
+    const current = (currentTask.description ?? "").trim();
+
+    if (!trimmed && !current) {
+      setIsEditingDescription(false);
+      return;
+    }
+
+    if (trimmed === current) {
+      return;
+    }
+
+    setSavingDescription(true);
+    try {
+      const response = await fetch(`/api/tasks/${currentTask.id}/description`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ projectId, description: trimmed }),
+      });
+
+      if (!response.ok) {
+        return;
+      }
+
+      const payload = (await response.json()) as {
+        description: string | null;
+        activity: TaskComment | null;
+      };
+
+      onDescriptionSaved(currentTask.id, payload.description ?? null, payload.activity ?? null);
+      if (!payload.description) {
+        setIsEditingDescription(false);
+      }
+    } finally {
+      setSavingDescription(false);
+    }
+  }
+
+  async function submitComment() {
+    const content = commentDraft.trim();
+    if (!content) {
+      return;
+    }
+
+    setSendingComment(true);
+    try {
+      const response = await fetch(`/api/tasks/${currentTask.id}/comments`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content }),
+      });
+
+      if (!response.ok) {
+        return;
+      }
+
+      const payload = (await response.json()) as { comment: TaskComment };
+      onCommentAdded(currentTask.id, payload.comment);
+      setCommentDraft("");
+    } finally {
+      setSendingComment(false);
+    }
+  }
+
+  return (
+    <DialogContent onClose={onClose} className="max-w-[1100px] border-[#172334] bg-[#020814] p-0 text-slate-100">
+      <div className="grid max-h-[85svh] min-h-[70svh] grid-cols-1 overflow-hidden lg:grid-cols-[1fr_340px]">
+        <section className="overflow-y-auto p-6 lg:border-r lg:border-[#132134]">
+          <div className="space-y-6">
+            <div className="space-y-2">
+              <p className="text-xs uppercase tracking-wider text-slate-500">Task</p>
+              <h2 className="text-2xl font-semibold text-slate-100">{currentTask.title}</h2>
+            </div>
+
+            <div className="grid gap-4 rounded-md border border-[#132134] bg-[#060f1d] p-4 sm:grid-cols-2">
+              <div className="space-y-1 text-sm">
+                <p className="inline-flex items-center gap-2 text-slate-400"><Flag className="size-3.5" /> Status</p>
+                <p className="text-slate-200">{TASK_STATUS_LABELS[currentTask.status]}</p>
+              </div>
+              <div className="space-y-1 text-sm">
+                <p className="inline-flex items-center gap-2 text-slate-400"><Flag className="size-3.5" /> Priority</p>
+                <p className="text-slate-200">{currentTask.priority}</p>
+              </div>
+              <div className="space-y-1 text-sm">
+                <p className="inline-flex items-center gap-2 text-slate-400"><UserCircle2 className="size-3.5" /> Assignee</p>
+                <p className="text-slate-200">{currentTask.assigneeEmail ?? "Unassigned"}</p>
+              </div>
+              <div className="space-y-1 text-sm">
+                <p className="inline-flex items-center gap-2 text-slate-400"><Clock3 className="size-3.5" /> Estimation</p>
+                <p className="text-slate-200">{formatDurationFromMinutes(currentTask.estimationMinutes)}</p>
+              </div>
+              <div className="space-y-1 text-sm sm:col-span-2">
+                <p className="inline-flex items-center gap-2 text-slate-400"><Calendar className="size-3.5" /> Due Date</p>
+                <p className="text-slate-200">{currentTask.dueDate ? formatDateTimeLabel(currentTask.dueDate) : "No due date"}</p>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <p className="text-sm font-medium text-slate-300">Description</p>
+
+              {!isEditingDescription && !currentTask.description ? (
+                <button
+                  type="button"
+                  onClick={() => setIsEditingDescription(true)}
+                  className="rounded-md border border-dashed border-[#25344a] px-3 py-2 text-sm text-slate-400 hover:border-[#35506f] hover:text-slate-200"
+                >
+                  Add Description
+                </button>
+              ) : (
+                <Textarea
+                  value={descriptionDraft}
+                  onChange={(event) => setDescriptionDraft(event.target.value)}
+                  onBlur={async () => {
+                    await saveDescription();
+                    if (!descriptionDraft.trim() && !(currentTask.description ?? "").trim()) {
+                      setIsEditingDescription(false);
+                    }
+                  }}
+                  placeholder="Add more details..."
+                  className="min-h-[140px] border-[#132134] bg-[#060f1d] text-base text-slate-100 placeholder:text-slate-500"
+                />
+              )}
+              {savingDescription ? <p className="text-xs text-slate-500">Saving description...</p> : null}
+            </div>
+          </div>
+        </section>
+
+        <aside className="flex h-full min-h-0 flex-col border-t border-[#132134] bg-[#040b16] lg:border-t-0">
+          <div className="border-b border-[#132134] px-4 py-3">
+            <h3 className="text-sm font-semibold text-slate-200">Activity</h3>
+          </div>
+
+          <div className="flex-1 min-h-0 space-y-2 overflow-y-auto px-4 py-3">
+            {currentTask.comments.length === 0 ? (
+              <p className="text-sm text-slate-500">No activity yet.</p>
+            ) : (
+              currentTask.comments.map((comment) => (
+                comment.type === "ACTIVITY" ? (
+                  <div key={comment.id} className="space-y-0.5 border-t border-[#132134]/60 pt-1 first:border-t-0 first:pt-0">
+                    <p className="text-[11px] leading-relaxed text-slate-500">
+                      <span className="font-normal text-slate-400">{comment.userEmail}</span> {comment.content}
+                    </p>
+                    <p className="text-[10px] text-slate-600">{formatDateTimeLabel(comment.createdAt)}</p>
+                  </div>
+                ) : (
+                  <div key={comment.id} className="rounded-md border border-[#152238] bg-[#06101e] p-2">
+                    <div className="mb-1 flex items-center justify-between gap-2 text-[11px] text-slate-500">
+                      <span>{comment.userEmail}</span>
+                      <span>{formatDateTimeLabel(comment.createdAt)}</span>
+                    </div>
+                    <p className="text-sm text-slate-200">{comment.content}</p>
+                  </div>
+                )
+              ))
+            )}
+          </div>
+
+          <div className="border-t border-[#132134] p-3">
+            <Textarea
+              value={commentDraft}
+              onChange={(event) => setCommentDraft(event.target.value)}
+              placeholder="Write a comment..."
+              className="min-h-[88px] border-[#132134] bg-[#060f1d] text-sm text-slate-100 placeholder:text-slate-500"
+            />
+            <div className="mt-2 flex justify-end">
+              <Button
+                type="button"
+                size="sm"
+                disabled={sendingComment || !commentDraft.trim()}
+                onClick={submitComment}
+                className="bg-sky-600 hover:bg-sky-500"
+              >
+                {sendingComment ? "Posting..." : "Comment"}
+              </Button>
+            </div>
+          </div>
+        </aside>
+      </div>
+    </DialogContent>
+  );
+}
+
+function SortableTaskCard({ task, onOpenTask }: { task: TaskCard; onOpenTask: (taskId: string) => void }) {
   const isDone = task.status === TaskStatus.DONE;
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: task.id,
@@ -123,8 +363,7 @@ function SortableTaskCard({ task }: { task: TaskCard }) {
     <article
       ref={setNodeRef}
       style={style}
-      {...attributes}
-      {...listeners}
+      onClick={() => onOpenTask(task.id)}
       className={cn(
         "rounded-md border border-[#1a2434] bg-[#070f1c] p-3 text-sm shadow-sm",
         "transition-colors hover:border-[#2a3c58]",
@@ -133,7 +372,19 @@ function SortableTaskCard({ task }: { task: TaskCard }) {
       )}
     >
       <div className="mb-2 flex items-center justify-between gap-2">
-        <PriorityPill priority={task.priority} />
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            {...attributes}
+            {...listeners}
+            onClick={(event) => event.stopPropagation()}
+            className="inline-flex size-5 items-center justify-center rounded text-slate-500 hover:bg-[#101b2c] hover:text-slate-300"
+            aria-label="Drag task"
+          >
+            <GripVertical className="size-4.5" />
+          </button>
+          <PriorityPill priority={task.priority} />
+        </div>
         {isDone && (
           <span className="inline-flex items-center gap-1 rounded bg-slate-700/80 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-slate-200">
             <CheckCircle2 className="size-3" />
@@ -162,11 +413,13 @@ function SortableColumn({
   tasks,
   dimmed,
   onAddTask,
+  onOpenTask,
 }: {
   status: TaskStatus;
   tasks: TaskCard[];
   dimmed?: boolean;
   onAddTask: (status: TaskStatus) => void;
+  onOpenTask: (taskId: string) => void;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: status,
@@ -207,7 +460,7 @@ function SortableColumn({
       <SortableContext items={tasks.map((task) => task.id)} strategy={verticalListSortingStrategy}>
         <div className="space-y-2">
           {tasks.map((task) => (
-            <SortableTaskCard key={task.id} task={task} />
+            <SortableTaskCard key={task.id} task={task} onOpenTask={onOpenTask} />
           ))}
         </div>
       </SortableContext>
@@ -415,6 +668,7 @@ export function KanbanBoard({ projectId, projectName, projectDescription, tasks:
   const [columnOrder, setColumnOrder] = useState<TaskStatus[]>(TASK_STATUS_ORDER);
   const [activeTaskId, setActiveTaskId] = useState<string | null>(null);
   const [activeColumnId, setActiveColumnId] = useState<TaskStatus | null>(null);
+  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [createTaskOpen, setCreateTaskOpen] = useState(false);
   const [createTaskStatus, setCreateTaskStatus] = useState<TaskStatus>(TaskStatus.TODO);
   const [pending, startTransition] = useTransition();
@@ -449,7 +703,24 @@ export function KanbanBoard({ projectId, projectName, projectDescription, tasks:
 
       if (!response.ok) {
         setTasks(previousTasks);
+        return;
       }
+
+      const payload = (await response.json()) as { activity?: TaskComment | null };
+      if (!payload.activity) {
+        return;
+      }
+
+      setTasks((prev) =>
+        prev.map((task) =>
+          task.id === taskId
+            ? {
+                ...task,
+                comments: [payload.activity as TaskComment, ...task.comments],
+              }
+            : task,
+        ),
+      );
     });
   }
 
@@ -585,6 +856,11 @@ export function KanbanBoard({ projectId, projectName, projectDescription, tasks:
 
   const activeTask = activeTaskId ? tasks.find((task) => task.id === activeTaskId) ?? null : null;
   const activeColumn = activeColumnId ?? null;
+  const selectedTask = selectedTaskId ? tasks.find((task) => task.id === selectedTaskId) ?? null : null;
+
+  function applyTaskUpdate(taskId: string, updater: (task: TaskCard) => TaskCard) {
+    setTasks((prev) => prev.map((task) => (task.id === taskId ? updater(task) : task)));
+  }
 
   function openCreateTask(status: TaskStatus) {
     setCreateTaskStatus(status);
@@ -597,6 +873,10 @@ export function KanbanBoard({ projectId, projectName, projectDescription, tasks:
       setCreateTaskOpen(false);
       router.refresh();
     });
+  }
+
+  function openTask(taskId: string) {
+    setSelectedTaskId(taskId);
   }
 
   return (
@@ -643,6 +923,7 @@ export function KanbanBoard({ projectId, projectName, projectDescription, tasks:
                 tasks={grouped[status]}
                 dimmed={pending}
                 onAddTask={openCreateTask}
+                onOpenTask={openTask}
               />
             ))}
           </div>
@@ -662,6 +943,23 @@ export function KanbanBoard({ projectId, projectName, projectDescription, tasks:
         assignees={assignees}
         defaultStatus={createTaskStatus}
         submitting={createPending}
+      />
+
+      <TaskDetailsDialog
+        open={Boolean(selectedTask)}
+        onClose={() => setSelectedTaskId(null)}
+        projectId={projectId}
+        task={selectedTask}
+        onDescriptionSaved={(taskId, description, activity) => {
+          applyTaskUpdate(taskId, (task) => ({
+            ...task,
+            description,
+            comments: activity ? [activity, ...task.comments] : task.comments,
+          }));
+        }}
+        onCommentAdded={(taskId, comment) => {
+          applyTaskUpdate(taskId, (task) => ({ ...task, comments: [comment, ...task.comments] }));
+        }}
       />
     </div>
   );
