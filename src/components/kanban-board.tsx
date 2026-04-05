@@ -821,7 +821,7 @@ function SortableTaskCard({ task, onOpenTask }: { task: TaskCard; onOpenTask: (t
       onClick={() => onOpenTask(task.id)}
       className={cn(
         "rounded-md border border-[#1a2434] bg-[#070f1c] p-3 text-sm shadow-sm",
-        "transition-colors hover:border-[#2a3c58]",
+        "cursor-pointer transition-colors hover:border-[#2a3c58]",
         isDone && "border-slate-600 bg-slate-900/70 ring-1 ring-inset ring-slate-600/60",
         isDragging && "opacity-60",
       )}
@@ -836,7 +836,7 @@ function SortableTaskCard({ task, onOpenTask }: { task: TaskCard; onOpenTask: (t
             className="inline-flex size-5 items-center justify-center rounded text-slate-500 hover:bg-[#101b2c] hover:text-slate-300"
             aria-label="Drag task"
           >
-            <GripVertical className="size-4.5" />
+            <GripVertical className="size-4.5 cursor-grab" />
           </button>
           <PriorityPill priority={task.priority} />
         </div>
