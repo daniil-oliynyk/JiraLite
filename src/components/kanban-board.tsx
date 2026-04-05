@@ -822,7 +822,7 @@ function SortableTaskCard({ task, onOpenTask }: { task: TaskCard; onOpenTask: (t
       className={cn(
         "rounded-md border border-[#1a2434] bg-[#070f1c] p-3 text-sm shadow-sm",
         "cursor-pointer transition-colors hover:border-[#2a3c58]",
-        isDone && "border-slate-600 bg-slate-900/70 ring-1 ring-inset ring-slate-600/60",
+        isDone && "border-emerald-700/80 bg-emerald-950/25 ring-1 ring-inset ring-emerald-600/40",
         isDragging && "opacity-60",
       )}
     >
@@ -892,6 +892,8 @@ function SortableColumn({
       style={style}
       className={cn(
         "h-[calc(100svh-13rem)] w-[500px] min-w-0 rounded-lg border border-[#111c2c] bg-[#040b16] p-3",
+        status === TaskStatus.IN_PROGRESS && "border-sky-900/70 bg-sky-950/25",
+        status === TaskStatus.DONE && "border-emerald-900/70 bg-emerald-950/30",
         dimmed && "opacity-80",
         isDragging && "opacity-50",
       )}
@@ -925,7 +927,13 @@ function SortableColumn({
 
 function ColumnPreview({ status, tasks }: { status: TaskStatus; tasks: TaskCard[] }) {
   return (
-    <section className="h-[calc(100svh-13rem)] w-full min-w-0 rounded-lg border border-[#111c2c] bg-[#040b16] p-3">
+    <section
+      className={cn(
+        "h-[calc(100svh-13rem)] w-full min-w-0 rounded-lg border border-[#111c2c] bg-[#040b16] p-3",
+        status === TaskStatus.IN_PROGRESS && "border-sky-900/70 bg-sky-950/25",
+        status === TaskStatus.DONE && "border-emerald-900/70 bg-emerald-950/30",
+      )}
+    >
       <div className="mb-3 flex items-center justify-between text-xs text-slate-300">
         <div className="flex items-center gap-2">
           <span className="h-1.5 w-1.5 rounded-full bg-slate-500" />
