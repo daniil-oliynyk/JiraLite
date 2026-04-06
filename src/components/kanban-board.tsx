@@ -82,9 +82,9 @@ function formatDateTimeLabel(value: string) {
 function PriorityPill({ priority }: { priority: TaskPriority }) {
   const tone =
     priority === TaskPriority.LOW
-      ? "bg-slate-700/50 text-sky-300"
+      ? "bg-slate-700/50 text-slate-300"
       : priority === TaskPriority.MEDIUM
-        ? "bg-sky-600/20 text-sky-300"
+        ? "bg-slate-600/20 text-slate-300"
         : priority === TaskPriority.HIGH
           ? "bg-rose-600/20 text-rose-300"
           : "bg-red-600/20 text-red-300";
@@ -98,7 +98,7 @@ function TaskCardPreview({ task }: { task: TaskCard }) {
   return (
     <article
       className={cn(
-        "rounded-md border border-[#1a2434] bg-[#070f1c] p-3 text-sm shadow-sm",
+        "rounded-md border border-[#2a2d34] bg-[#121417] p-3 text-sm shadow-sm",
         isDone && "border-slate-600 bg-slate-900/70 ring-1 ring-inset ring-slate-600/60",
       )}
     >
@@ -118,7 +118,7 @@ function TaskCardPreview({ task }: { task: TaskCard }) {
           {formatDurationFromMinutes(task.estimationMinutes)}
         </span>
         {task.assigneeEmail && (
-          <span className="inline-flex size-5 items-center justify-center rounded-full bg-sky-700/30 text-[10px] font-medium text-sky-300">
+          <span className="inline-flex size-5 items-center justify-center rounded-full bg-slate-700/40 text-[10px] font-medium text-slate-300">
             {task.assigneeEmail.slice(0, 2).toUpperCase()}
           </span>
         )}
@@ -510,16 +510,16 @@ function TaskDetailsDialog({
   }
 
   return (
-    <DialogContent onClose={onClose} className="max-w-[1100px] border-[#172334] bg-[#020814] p-0 text-slate-100">
+    <DialogContent onClose={onClose} className="max-w-[1100px] border-[#2a2d34] bg-[#0f1114] p-0 text-slate-100">
       <div className="grid max-h-[85svh] min-h-[70svh] grid-cols-1 overflow-hidden lg:grid-cols-[1fr_340px]">
-        <section className="overflow-y-auto p-6 lg:border-r lg:border-[#132134]">
+        <section className="overflow-y-auto p-6 lg:border-r lg:border-[#23262d]">
           <div className="space-y-6">
             <div className="space-y-2">
               <p className="text-xs uppercase tracking-wider text-slate-500">Task</p>
               <h2 className="text-2xl font-semibold text-slate-100">{currentTask.title}</h2>
             </div>
 
-            <div className="grid gap-4 rounded-md border border-[#132134] bg-[#060f1d] p-4 sm:grid-cols-2">
+            <div className="grid gap-4 rounded-md border border-[#23262d] bg-[#171a20] p-4 sm:grid-cols-2">
               <div className="space-y-1 text-sm">
                 <p className="inline-flex items-center gap-2 text-slate-400"><Flag className="size-3.5" /> Status</p>
                 <p className="text-slate-200">{TASK_STATUS_LABELS[currentTask.status]}</p>
@@ -532,7 +532,7 @@ function TaskDetailsDialog({
                     type="button"
                     disabled={savingPriority}
                     onClick={() => setShowPriorityPopover((prev) => !prev)}
-                    className="inline-flex max-w-full items-center gap-1 rounded px-1 py-0.5 text-left text-slate-200 transition-colors hover:bg-[#0b1728] hover:text-slate-100 disabled:opacity-60"
+                    className="inline-flex max-w-full items-center gap-1 rounded px-1 py-0.5 text-left text-slate-200 transition-colors hover:bg-[#232730] hover:text-slate-100 disabled:opacity-60"
                   >
                     <span className="truncate border-transparent">{priorityDraft}</span>
                     <ChevronDown className="size-3.5 text-slate-400" />
@@ -541,7 +541,7 @@ function TaskDetailsDialog({
                   {showPriorityPopover && (
                     <div
                       ref={priorityPopoverRef}
-                      className="absolute left-0 top-9 z-30 w-52 rounded-md border border-[#1a2a3d] bg-[#060f1d] p-2 shadow-md"
+                      className="absolute left-0 top-9 z-30 w-52 rounded-md border border-[#2f343d] bg-[#171a20] p-2 shadow-md"
                     >
                       <div className="max-h-48 space-y-1 overflow-y-auto">
                         {PRIORITY_OPTIONS.map((priority) => (
@@ -553,8 +553,8 @@ function TaskDetailsDialog({
                               void savePriority(priority);
                             }}
                             className={cn(
-                              "flex w-full items-center rounded-sm px-2 py-1.5 text-left text-sm text-slate-200 hover:bg-[#101b2c]",
-                              priorityDraft === priority && "bg-[#101b2c]",
+                              "flex w-full items-center rounded-sm px-2 py-1.5 text-left text-sm text-slate-200 hover:bg-[#272c35]",
+                              priorityDraft === priority && "bg-[#272c35]",
                             )}
                           >
                             {priority.charAt(0) + priority.slice(1).toLowerCase()}
@@ -574,7 +574,7 @@ function TaskDetailsDialog({
                     type="button"
                     disabled={savingAssignee}
                     onClick={() => setShowAssigneePopover((prev) => !prev)}
-                    className="inline-flex max-w-full items-center gap-1 rounded px-1 py-0.5 text-left text-slate-200 transition-colors hover:bg-[#0b1728] hover:text-slate-100 disabled:opacity-60"
+                    className="inline-flex max-w-full items-center gap-1 rounded px-1 py-0.5 text-left text-slate-200 transition-colors hover:bg-[#232730] hover:text-slate-100 disabled:opacity-60"
                   >
                     <span className="truncate  border-transparent hover:border-slate-500">{selectedAssigneeLabel}</span>
                     <ChevronDown className="size-3.5 text-slate-400" />
@@ -583,7 +583,7 @@ function TaskDetailsDialog({
                   {showAssigneePopover && (
                     <div
                       ref={assigneePopoverRef}
-                      className="absolute left-0 top-9 z-30 w-72 rounded-md border border-[#1a2a3d] bg-[#060f1d] p-2 shadow-md"
+                      className="absolute left-0 top-9 z-30 w-72 rounded-md border border-[#2f343d] bg-[#171a20] p-2 shadow-md"
                     >
                       <div className="relative">
                         <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-slate-500" />
@@ -591,7 +591,7 @@ function TaskDetailsDialog({
                           value={assigneeSearch}
                           onChange={(event) => setAssigneeSearch(event.target.value)}
                           placeholder="Search assignees..."
-                          className="h-9 border-[#132134] bg-[#040b16] pl-8 text-sm text-slate-100 placeholder:text-slate-500"
+                          className="h-9 border-[#23262d] bg-[#14171d] pl-8 text-sm text-slate-100 placeholder:text-slate-500"
                         />
                       </div>
 
@@ -603,8 +603,8 @@ function TaskDetailsDialog({
                             void saveAssignee("");
                           }}
                           className={cn(
-                            "flex w-full items-center rounded-sm px-2 py-1.5 text-left text-sm text-slate-200 hover:bg-[#101b2c]",
-                            assigneeDraft === "" && "bg-[#101b2c]",
+                            "flex w-full items-center rounded-sm px-2 py-1.5 text-left text-sm text-slate-200 hover:bg-[#272c35]",
+                            assigneeDraft === "" && "bg-[#272c35]",
                           )}
                         >
                           Unassigned
@@ -619,8 +619,8 @@ function TaskDetailsDialog({
                               void saveAssignee(assignee.id);
                             }}
                             className={cn(
-                              "flex w-full items-center rounded-sm px-2 py-1.5 text-left text-sm text-slate-200 hover:bg-[#101b2c]",
-                              assigneeDraft === assignee.id && "bg-[#101b2c]",
+                              "flex w-full items-center rounded-sm px-2 py-1.5 text-left text-sm text-slate-200 hover:bg-[#272c35]",
+                              assigneeDraft === assignee.id && "bg-[#272c35]",
                             )}
                           >
                             <span className="truncate">{assignee.email}</span>
@@ -657,14 +657,14 @@ function TaskDetailsDialog({
                       }
                     }}
                     placeholder="e.g. 2h"
-                    className="h-8 border-[#132134] bg-[#040b16] text-sm text-slate-100 placeholder:text-slate-500"
+                    className="h-8 border-[#23262d] bg-[#14171d] text-sm text-slate-100 placeholder:text-slate-500"
                   />
                 ) : (
                   <button
                     type="button"
                     disabled={savingEstimation}
                     onClick={() => setIsEditingEstimation(true)}
-                    className="h-8 w-full rounded px-1 py-0.5 text-left text-slate-200 transition-colors hover:bg-[#0b1728] hover:text-slate-100 disabled:opacity-60"
+                    className="h-8 w-full rounded px-1 py-0.5 text-left text-slate-200 transition-colors hover:bg-[#232730] hover:text-slate-100 disabled:opacity-60"
                   >
                     {formatDurationFromMinutes(currentTask.estimationMinutes)}
                   </button>
@@ -679,7 +679,7 @@ function TaskDetailsDialog({
                     type="button"
                     disabled={savingDueDate}
                     onClick={() => setShowDueDatePopover((prev) => !prev)}
-                    className="inline-flex items-center gap-1 rounded px-1 py-0.5 text-slate-200 transition-colors hover:bg-[#0b1728] hover:text-slate-100 disabled:opacity-60"
+                    className="inline-flex items-center gap-1 rounded px-1 py-0.5 text-slate-200 transition-colors hover:bg-[#232730] hover:text-slate-100 disabled:opacity-60"
                   >
                     <span>{currentTask.dueDate ? formatDateTimeLabel(currentTask.dueDate) : "No due date"}</span>
                     <ChevronDown className="size-3.5 text-slate-400" />
@@ -688,7 +688,7 @@ function TaskDetailsDialog({
                   {showDueDatePopover && (
                     <div
                       ref={dueDatePopoverRef}
-                      className="absolute left-0 top-9 z-30 w-64 rounded-md border border-[#1a2a3d] bg-[#060f1d] p-2 shadow-md"
+                      className="absolute left-0 top-9 z-30 w-64 rounded-md border border-[#2f343d] bg-[#171a20] p-2 shadow-md"
                     >
                       <Input
                         type="date"
@@ -698,7 +698,7 @@ function TaskDetailsDialog({
                           setDueDateDraft(nextDate);
                           void saveDueDate(nextDate);
                         }}
-                        className="h-9 border-[#132134] bg-[#040b16] text-sm text-slate-100"
+                        className="h-9 border-[#23262d] bg-[#14171d] text-sm text-slate-100"
                       />
                       <button
                         type="button"
@@ -724,7 +724,7 @@ function TaskDetailsDialog({
                 <button
                   type="button"
                   onClick={() => setIsEditingDescription(true)}
-                  className="rounded-md border border-dashed border-[#25344a] px-3 py-2 text-sm text-slate-400 hover:border-[#35506f] hover:text-slate-200"
+                  className="rounded-md border border-dashed border-[#343943] px-3 py-2 text-sm text-slate-400 hover:border-[#4a505c] hover:text-slate-200"
                 >
                   Add Description
                 </button>
@@ -739,7 +739,7 @@ function TaskDetailsDialog({
                     }
                   }}
                   placeholder="Add more details..."
-                  className="min-h-[140px] border-[#132134] bg-[#060f1d] text-base text-slate-100 placeholder:text-slate-500"
+                  className="min-h-[140px] border-[#23262d] bg-[#171a20] text-base text-slate-100 placeholder:text-slate-500"
                 />
               )}
               {savingDescription ? <p className="text-xs text-slate-500">Saving description...</p> : null}
@@ -747,8 +747,8 @@ function TaskDetailsDialog({
           </div>
         </section>
 
-        <aside className="flex h-full min-h-0 flex-col border-t border-[#132134] bg-[#040b16] lg:border-t-0">
-          <div className="border-b border-[#132134] px-4 py-3">
+        <aside className="flex h-full min-h-0 flex-col border-t border-[#23262d] bg-[#14171d] lg:border-t-0">
+          <div className="border-b border-[#23262d] px-4 py-3">
             <h3 className="text-sm font-semibold text-slate-200">Activity</h3>
           </div>
 
@@ -758,14 +758,14 @@ function TaskDetailsDialog({
             ) : (
               currentTask.comments.map((comment) => (
                 comment.type === "ACTIVITY" ? (
-                  <div key={comment.id} className="space-y-0.5 border-t border-[#132134]/60 pt-1 first:border-t-0 first:pt-0">
+                  <div key={comment.id} className="space-y-0.5 border-t border-[#23262d]/60 pt-1 first:border-t-0 first:pt-0">
                     <p className="text-[11px] leading-relaxed text-slate-500">
                       <span className="font-normal text-slate-400">{comment.userEmail}</span> {comment.content}
                     </p>
                     <p className="text-[10px] text-slate-600">{formatDateTimeLabel(comment.createdAt)}</p>
                   </div>
                 ) : (
-                  <div key={comment.id} className="rounded-md border border-[#152238] bg-[#06101e] p-2">
+                  <div key={comment.id} className="rounded-md border border-[#2b3038] bg-[#181b21] p-2">
                     <div className="mb-1 flex items-center justify-between gap-2 text-[11px] text-slate-500">
                       <span>{comment.userEmail}</span>
                       <span>{formatDateTimeLabel(comment.createdAt)}</span>
@@ -777,20 +777,20 @@ function TaskDetailsDialog({
             )}
           </div>
 
-          <div className="border-t border-[#132134] p-3">
+          <div className="border-t border-[#23262d] p-3">
             <div className="relative">
               <Textarea
                 value={commentDraft}
                 onChange={(event) => setCommentDraft(event.target.value)}
                 placeholder="Write a comment..."
-                className="min-h-[88px] border-[#132134] bg-[#060f1d] pr-10 text-sm text-slate-100 placeholder:text-slate-500"
+                className="min-h-[88px] border-[#23262d] bg-[#171a20] pr-10 text-sm text-slate-100 placeholder:text-slate-500"
               />
               <button
                 type="button"
                 disabled={sendingComment || !commentDraft.trim()}
                 onClick={submitComment}
                 aria-label={sendingComment ? "Sending comment" : "Send comment"}
-                className="absolute bottom-2 right-2 inline-flex size-7 items-center justify-center rounded-md text-slate-400 transition-colors hover:bg-[#0b1728] hover:text-sky-300 disabled:cursor-not-allowed disabled:opacity-50"
+                className="absolute bottom-2 right-2 inline-flex size-7 items-center justify-center rounded-md text-slate-400 transition-colors hover:bg-[#232730] hover:text-slate-200 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 <Send className="size-4" />
               </button>
@@ -820,8 +820,8 @@ function SortableTaskCard({ task, onOpenTask }: { task: TaskCard; onOpenTask: (t
       style={style}
       onClick={() => onOpenTask(task.id)}
       className={cn(
-        "rounded-md border border-[#1a2434] bg-[#070f1c] p-3 text-sm shadow-sm",
-        "cursor-pointer transition-colors hover:border-[#2a3c58]",
+        "rounded-md border border-[#2a2d34] bg-[#121417] p-3 text-sm shadow-sm",
+        "cursor-pointer transition-colors hover:border-[#3a3f47]",
         isDone && "border-emerald-700/80 bg-emerald-950/25 ring-1 ring-inset ring-emerald-600/40",
         isDragging && "opacity-60",
       )}
@@ -833,7 +833,7 @@ function SortableTaskCard({ task, onOpenTask }: { task: TaskCard; onOpenTask: (t
             {...attributes}
             {...listeners}
             onClick={(event) => event.stopPropagation()}
-            className="inline-flex size-5 items-center justify-center rounded text-slate-500 hover:bg-[#101b2c] hover:text-slate-300"
+            className="inline-flex size-5 items-center justify-center rounded text-slate-500 hover:bg-[#272c35] hover:text-slate-300"
             aria-label="Drag task"
           >
             <GripVertical className="size-4.5 cursor-grab" />
@@ -854,7 +854,7 @@ function SortableTaskCard({ task, onOpenTask }: { task: TaskCard; onOpenTask: (t
           {formatDurationFromMinutes(task.estimationMinutes)}
         </span>
         {task.assigneeEmail && (
-          <span className="inline-flex size-5 items-center justify-center rounded-full bg-sky-700/30 text-[10px] font-medium text-sky-300">
+          <span className="inline-flex size-5 items-center justify-center rounded-full bg-slate-700/40 text-[10px] font-medium text-slate-300">
             {task.assigneeEmail.slice(0, 2).toUpperCase()}
           </span>
         )}
@@ -891,8 +891,8 @@ function SortableColumn({
       ref={setNodeRef}
       style={style}
       className={cn(
-        "h-[calc(100svh-13rem)] w-[500px] min-w-0 rounded-lg border border-[#111c2c] bg-[#040b16] p-3",
-        status === TaskStatus.IN_PROGRESS && "border-sky-900/70 bg-sky-950/25",
+        "h-[calc(100svh-13rem)] w-[500px] min-w-0 rounded-lg border border-[#242830] bg-[#14171d] p-3",
+        status === TaskStatus.IN_PROGRESS && "border-slate-700/70 bg-slate-900/35",
         status === TaskStatus.DONE && "border-emerald-900/70 bg-emerald-950/30",
         dimmed && "opacity-80",
         isDragging && "opacity-50",
@@ -929,8 +929,8 @@ function ColumnPreview({ status, tasks }: { status: TaskStatus; tasks: TaskCard[
   return (
     <section
       className={cn(
-        "h-[calc(100svh-13rem)] w-full min-w-0 rounded-lg border border-[#111c2c] bg-[#040b16] p-3",
-        status === TaskStatus.IN_PROGRESS && "border-sky-900/70 bg-sky-950/25",
+        "h-[calc(100svh-13rem)] w-full min-w-0 rounded-lg border border-[#242830] bg-[#14171d] p-3",
+        status === TaskStatus.IN_PROGRESS && "border-slate-700/70 bg-slate-900/35",
         status === TaskStatus.DONE && "border-emerald-900/70 bg-emerald-950/30",
       )}
     >
@@ -989,7 +989,7 @@ function CreateTaskDialog({
   return (
     <DialogContent
       onClose={onClose}
-      className="max-w-2xl border-[#172334] bg-[#020814] p-6 text-slate-100 shadow-[0_12px_48px_rgba(0,0,0,0.55)]"
+      className="max-w-2xl border-[#2a2d34] bg-[#0f1114] p-6 text-slate-100 shadow-[0_12px_48px_rgba(0,0,0,0.55)]"
     >
       <form
         action={onSubmit}
@@ -1010,7 +1010,7 @@ function CreateTaskDialog({
             name="title"
             placeholder="What needs to be done?"
             required
-            className="h-11 border-[#132134] bg-[#060f1d] text-base text-slate-100 placeholder:text-slate-500"
+            className="h-11 border-[#23262d] bg-[#171a20] text-base text-slate-100 placeholder:text-slate-500"
           />
         </div>
 
@@ -1022,7 +1022,7 @@ function CreateTaskDialog({
             id="task-description"
             name="description"
             placeholder="Add more details..."
-            className="min-h-[112px] border-[#132134] bg-[#060f1d] text-base text-slate-100 placeholder:text-slate-500"
+            className="min-h-[112px] border-[#23262d] bg-[#171a20] text-base text-slate-100 placeholder:text-slate-500"
           />
         </div>
 
@@ -1033,10 +1033,10 @@ function CreateTaskDialog({
               id="task-status"
               name="status"
               defaultValue={defaultStatus}
-              className="h-11 w-full rounded-md border border-[#132134] bg-[#060f1d] px-3 text-base text-slate-100 outline-none focus:border-[#274a72]"
+              className="h-11 w-full rounded-md border border-[#23262d] bg-[#171a20] px-3 text-base text-slate-100 outline-none focus:border-[#4b5563]"
             >
               {TASK_STATUS_ORDER.map((status) => (
-                <option key={status} value={status} className="bg-[#060f1d] text-slate-100">
+                <option key={status} value={status} className="bg-[#171a20] text-slate-100">
                   {TASK_STATUS_LABELS[status]}
                 </option>
               ))}
@@ -1048,10 +1048,10 @@ function CreateTaskDialog({
               id="task-priority"
               name="priority"
               defaultValue={TaskPriority.MEDIUM}
-              className="h-11 w-full rounded-md border border-[#132134] bg-[#060f1d] px-3 text-base text-slate-100 outline-none focus:border-[#274a72]"
+              className="h-11 w-full rounded-md border border-[#23262d] bg-[#171a20] px-3 text-base text-slate-100 outline-none focus:border-[#4b5563]"
             >
               {PRIORITY_OPTIONS.map((priority) => (
-                <option key={priority} value={priority} className="bg-[#060f1d] text-slate-100">
+                <option key={priority} value={priority} className="bg-[#171a20] text-slate-100">
                   {priority.charAt(0) + priority.slice(1).toLowerCase()}
                 </option>
               ))}
@@ -1065,13 +1065,13 @@ function CreateTaskDialog({
             id="task-assignee"
             name="assigneeId"
             defaultValue=""
-            className="h-11 w-full rounded-md border border-[#132134] bg-[#060f1d] px-3 text-base text-slate-100 outline-none focus:border-[#274a72]"
+            className="h-11 w-full rounded-md border border-[#23262d] bg-[#171a20] px-3 text-base text-slate-100 outline-none focus:border-[#4b5563]"
           >
-            <option value="" className="bg-[#060f1d] text-slate-400">
+            <option value="" className="bg-[#171a20] text-slate-400">
               Unassigned
             </option>
             {assignees.map((assignee) => (
-              <option key={assignee.id} value={assignee.id} className="bg-[#060f1d] text-slate-100">
+              <option key={assignee.id} value={assignee.id} className="bg-[#171a20] text-slate-100">
                 {assignee.email}
               </option>
             ))}
@@ -1085,7 +1085,7 @@ function CreateTaskDialog({
               id="task-due-date"
               name="dueDate"
               type="date"
-              className="h-11 border-[#132134] bg-[#060f1d] text-base text-slate-100"
+              className="h-11 border-[#23262d] bg-[#171a20] text-base text-slate-100"
             />
           </div>
           <div className="space-y-2">
@@ -1098,7 +1098,7 @@ function CreateTaskDialog({
               value={estimationHours}
               onChange={(event) => setEstimationHours(event.target.value)}
               placeholder="e.g., 8"
-              className="h-11 border-[#132134] bg-[#060f1d] text-base text-slate-100 placeholder:text-slate-500"
+              className="h-11 border-[#23262d] bg-[#171a20] text-base text-slate-100 placeholder:text-slate-500"
             />
           </div>
         </div>
@@ -1108,14 +1108,14 @@ function CreateTaskDialog({
             type="button"
             variant="ghost"
             onClick={onClose}
-            className="h-10 border border-[#1a2a3d] bg-[#070f1c] px-5 text-base text-slate-200 hover:bg-[#0c1627]"
+            className="h-10 border border-[#2f343d] bg-[#121417] px-5 text-base text-slate-200 hover:bg-[#1f232a]"
           >
             Cancel
           </Button>
           <Button
             type="submit"
             disabled={submitting}
-            className="h-10 bg-sky-600 px-5 text-base text-white hover:bg-sky-500"
+            className="h-10 bg-slate-200 px-5 text-base text-slate-900 hover:bg-slate-100"
           >
             {submitting ? "Creating..." : "Create Task"}
           </Button>
@@ -1343,14 +1343,14 @@ export function KanbanBoard({ projectId, projectName, projectDescription, tasks:
   }
 
   return (
-    <div className="space-y-4 rounded-xl border border-[#0e1827] bg-[#020814] p-4">
+    <div className="space-y-4 rounded-xl border border-[#21242b] bg-[#0f1114] p-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="text-xl font-semibold text-slate-100">{projectName}</h1>
           <p className="text-sm text-slate-400">{projectDescription || "No description"}</p>
         </div>
         <div className="flex items-center gap-2">
-          <Button size="sm" variant="secondary" className="gap-1.5 bg-[#0d1726] text-slate-100 hover:bg-[#132238]">
+          <Button size="sm" variant="secondary" className="gap-1.5 bg-[#252930] text-slate-100 hover:bg-[#30353d]">
             <LayoutGrid className="size-3.5" />
             Board
           </Button>
@@ -1360,7 +1360,7 @@ export function KanbanBoard({ projectId, projectName, projectDescription, tasks:
           </Button>
           <Button
             size="sm"
-            className="gap-1.5 bg-sky-600 hover:bg-sky-500"
+            className="gap-1.5 bg-slate-200 text-slate-900 hover:bg-slate-100"
             onClick={() => openCreateTask(TaskStatus.TODO)}
           >
             <Plus className="size-3.5" />
