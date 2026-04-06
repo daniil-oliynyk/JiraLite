@@ -276,14 +276,14 @@ export function AppSidebar({ teamSpaces, currentUser }: { teamSpaces: TeamSpace[
           </SidebarGroup>
         </SidebarContent>
 
-        <SidebarFooter className="mt-auto border-t border-sidebar-border px-3 py-3">
-          <div className="flex items-center gap-2.5 rounded-md px-1.5 py-1.5">
-            <span className="inline-flex size-8 shrink-0 items-center justify-center rounded-full bg-sidebar-accent text-[11px] font-semibold text-sidebar-foreground">
+        <SidebarFooter className="mt-auto border-t border-sidebar-border/80 px-3 py-2">
+          <div className="flex items-center gap-2 rounded-md px-1 py-1">
+            <span className="inline-flex size-[30px] shrink-0 items-center justify-center rounded-full bg-sidebar-accent text-[10px] font-semibold leading-none text-sidebar-foreground">
               {initials}
             </span>
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-medium text-sidebar-foreground">{displayName}</p>
-              <p className="truncate text-xs text-sidebar-foreground/60">{roleLabel}</p>
+            <div className="min-w-0 flex-1 leading-tight">
+              <p className="truncate text-[15px] font-medium text-sidebar-foreground">{displayName}</p>
+              <p className="truncate text-[11px] text-sidebar-foreground/45">{roleLabel}</p>
             </div>
             <div className="relative">
               <button
@@ -291,9 +291,9 @@ export function AppSidebar({ teamSpaces, currentUser }: { teamSpaces: TeamSpace[
                 type="button"
                 aria-label="Open settings"
                 onClick={() => setShowSettingsPopover((prev) => !prev)}
-                className="inline-flex size-7 items-center justify-center rounded-md text-sidebar-foreground/60 transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground"
+                className="inline-flex size-6 items-center justify-center rounded-md text-sidebar-foreground/55 transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground"
               >
-                <Settings className="size-4" />
+                <Settings className="size-3.5" />
               </button>
 
               {showSettingsPopover ? (
