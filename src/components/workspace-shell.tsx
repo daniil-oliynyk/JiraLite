@@ -1,8 +1,6 @@
 import Link from "next/link";
 import { ReactNode } from "react";
 
-import { signOutAction } from "@/app/actions";
-import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 
 type TeamSpaceLink = {
@@ -25,11 +23,6 @@ export function WorkspaceShell({ userEmail, teamSpaces, children }: WorkspaceShe
             <h1 className="text-lg font-semibold">Kinetic Workspace</h1>
             <p className="text-xs text-muted-foreground">Dark-mode project operations</p>
           </div>
-          <form action={signOutAction}>
-            <Button variant="ghost" size="sm" type="submit">
-              Sign Out
-            </Button>
-          </form>
         </div>
       </header>
       <div className="mx-auto grid max-w-[1600px] grid-cols-1 gap-6 p-6 lg:grid-cols-[280px_1fr]">
