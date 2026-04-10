@@ -17,10 +17,22 @@ export default async function TeamSpacePage({ params }: { params: Promise<{ team
   const teamSpace = await prisma.teamSpace.findUnique({
     where: { id: teamSpaceId },
     include: {
+      memberships: {
+        include: {
+          user: {
+            select: {
+              id: true,
+              email: true,
+            },
+          },
+        },
+      },
       projects: {
         include: {
           memberships: {
-            where: { userId: user.id },
+            select: {
+              userId: true,
+            },
           },
           tasks: {
             select: {
@@ -41,8 +53,13 @@ export default async function TeamSpacePage({ params }: { params: Promise<{ team
   const visibleProjects = teamSpace.projects.filter((project) => {
     if (membership.role === "MANAGER") return true;
     if (project.visibility === ProjectVisibility.TEAM_VISIBLE) return true;
-    return project.memberships.length > 0;
+    return project.memberships.some((projectMembership) => projectMembership.userId === user.id);
   });
+
+  const teamMembers = teamSpace.memberships.map((spaceMembership) => ({
+    id: spaceMembership.user.id,
+    email: spaceMembership.user.email,
+  }));
 
   const projectsWithProgress = visibleProjects.map((project) => {
     const totalTasks = project.tasks.length;
@@ -90,7 +107,14 @@ export default async function TeamSpacePage({ params }: { params: Promise<{ team
                   <CardTitle className="line-clamp-1 text-base">{project.name}</CardTitle>
                   <div className="ml-auto flex items-center gap-2 text-muted-foreground">
                     {membership.role === "MANAGER" ? (
-                      <ProjectCardActionsMenu projectName={project.name} />
+                      <ProjectCardActionsMenu
+                        projectId={project.id}
+                        projectName={project.name}
+                        projectDescription={project.description}
+                        teamSpaceId={teamSpace.id}
+                        teamMembers={teamMembers}
+                        currentMemberUserIds={project.memberships.map((projectMembership) => projectMembership.userId)}
+                      />
                     ) : null}
                     {project.visibility === ProjectVisibility.MEMBERS_ONLY ? (
                       <Lock className="size-3.5" />

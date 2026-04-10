@@ -235,6 +235,132 @@ export async function createProjectAction(formData: FormData) {
   redirect(`/workspace/team-space/${teamSpaceId}/project/${project.id}`);
 }
 
+export async function updateProjectAction(formData: FormData) {
+  const user = await requireManager();
+  const projectId = String(formData.get("projectId") ?? "").trim();
+  const name = String(formData.get("name") ?? "").trim();
+  const description = String(formData.get("description") ?? "").trim();
+  const memberUserIds = formData
+    .getAll("memberUserIds")
+    .map((value) => String(value))
+    .filter(Boolean);
+
+  if (!projectId || !name) {
+    return;
+  }
+
+  const project = await prisma.project.findUnique({
+    where: { id: projectId },
+    select: {
+      id: true,
+      teamSpaceId: true,
+      teamSpace: {
+        select: {
+          memberships: {
+            where: { userId: user.id },
+            select: { role: true },
+          },
+        },
+      },
+    },
+  });
+
+  if (!project) {
+    return;
+  }
+
+  const membership = project.teamSpace.memberships[0];
+  if (!membership || membership.role !== TeamRole.MANAGER) {
+    return;
+  }
+
+  const allowedMembers = await prisma.teamMembership.findMany({
+    where: {
+      teamSpaceId: project.teamSpaceId,
+      userId: {
+        in: memberUserIds,
+      },
+    },
+    select: { userId: true },
+  });
+
+  const finalMemberUserIds = Array.from(new Set([user.id, ...allowedMembers.map((item) => item.userId)]));
+
+  await prisma.$transaction([
+    prisma.project.update({
+      where: { id: projectId },
+      data: {
+        name,
+        description: description || null,
+      },
+    }),
+    prisma.projectMembership.deleteMany({
+      where: {
+        projectId,
+        userId: {
+          notIn: finalMemberUserIds,
+        },
+      },
+    }),
+    prisma.projectMembership.createMany({
+      data: finalMemberUserIds.map((memberUserId) => ({
+        projectId,
+        userId: memberUserId,
+      })),
+      skipDuplicates: true,
+    }),
+  ]);
+
+  revalidatePath(`/workspace/team-space/${project.teamSpaceId}`);
+  revalidatePath(`/workspace/team-space/${project.teamSpaceId}/project/${projectId}`);
+}
+
+export async function deleteProjectAction(formData: FormData) {
+  const user = await requireManager();
+  const projectId = String(formData.get("projectId") ?? "").trim();
+  const confirmationName = String(formData.get("confirmationName") ?? "").trim();
+
+  if (!projectId) {
+    return;
+  }
+
+  const project = await prisma.project.findUnique({
+    where: { id: projectId },
+    select: {
+      id: true,
+      name: true,
+      teamSpaceId: true,
+      teamSpace: {
+        select: {
+          memberships: {
+            where: { userId: user.id },
+            select: { role: true },
+          },
+        },
+      },
+    },
+  });
+
+  if (!project) {
+    return;
+  }
+
+  const membership = project.teamSpace.memberships[0];
+  if (!membership || membership.role !== TeamRole.MANAGER) {
+    return;
+  }
+
+  if (confirmationName !== project.name) {
+    return;
+  }
+
+  await prisma.project.delete({
+    where: { id: projectId },
+  });
+
+  revalidatePath(`/workspace/team-space/${project.teamSpaceId}`);
+}
+
 export async function createTaskAction(formData: FormData) {
   const user = await requireUser();
 
