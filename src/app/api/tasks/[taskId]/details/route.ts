@@ -2,9 +2,92 @@ import { NextRequest, NextResponse } from "next/server";
 import { TaskPriority } from "@prisma/client";
 
 import { requireApiUser } from "@/lib/api-auth";
-import { canManageProject } from "@/lib/permissions";
+import { canManageProject, canViewProject } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import { parseDurationToMinutes } from "@/lib/utils";
+
+export async function GET(request: NextRequest, context: { params: Promise<{ taskId: string }> }) {
+  const { taskId } = await context.params;
+
+  const { user, response } = await requireApiUser();
+  if (response) {
+    return response;
+  }
+
+  const projectId = request.nextUrl.searchParams.get("projectId")?.trim() ?? "";
+  if (!projectId) {
+    return NextResponse.json({ error: "Missing projectId" }, { status: 400 });
+  }
+
+  const canView = await canViewProject(user.id, projectId);
+  if (!canView) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  const task = await prisma.task.findUnique({
+    where: { id: taskId },
+    include: {
+      project: {
+        select: {
+          id: true,
+          name: true,
+          teamSpace: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+        },
+      },
+      assignee: {
+        select: {
+          id: true,
+          email: true,
+        },
+      },
+      comments: {
+        include: {
+          user: {
+            select: {
+              email: true,
+            },
+          },
+        },
+        orderBy: { createdAt: "desc" },
+        take: 12,
+      },
+    },
+  });
+
+  if (!task || task.projectId !== projectId) {
+    return NextResponse.json({ error: "Task not found" }, { status: 404 });
+  }
+
+  return NextResponse.json({
+    ok: true,
+    task: {
+      id: task.id,
+      title: task.title,
+      description: task.description,
+      status: task.status,
+      priority: task.priority,
+      estimationMinutes: task.estimationMinutes,
+      dueDate: task.dueDate?.toISOString() ?? null,
+      assigneeEmail: task.assignee?.email ?? null,
+      projectId: task.project.id,
+      projectName: task.project.name,
+      teamSpaceId: task.project.teamSpace.id,
+      teamSpaceName: task.project.teamSpace.name,
+      comments: task.comments.map((comment) => ({
+        id: comment.id,
+        type: comment.type,
+        content: comment.content,
+        createdAt: comment.createdAt.toISOString(),
+        userEmail: comment.user.email,
+      })),
+    },
+  });
+}
 
 export async function PATCH(request: NextRequest, context: { params: Promise<{ taskId: string }> }) {
   const { taskId } = await context.params;
