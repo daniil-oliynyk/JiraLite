@@ -153,6 +153,34 @@ export function AppSidebar({ teamSpaces, currentUser }: { teamSpaces: TeamSpace[
     };
   }, [actionMenuSpaceId, showSharePopover, showSettingsPopover]);
 
+  useEffect(() => {
+    function handleOpenCreateProject(event: Event) {
+      if (!isManager) {
+        return;
+      }
+
+      const customEvent = event as CustomEvent<{ teamSpaceId?: string }>;
+      const requestedTeamSpaceId = customEvent.detail?.teamSpaceId;
+      const validTeamSpaceId = requestedTeamSpaceId && teamSpaces.some((space) => space.id === requestedTeamSpaceId);
+
+      setActionMenuSpaceId(null);
+      setTeamSpaceSearch("");
+      setShowTeamSpaceDropdown(false);
+      setMakeProjectPrivate(false);
+      setShowSharePopover(false);
+      setMemberSearch("");
+      setSharedUserIds([]);
+      setProjectTeamSpaceId(validTeamSpaceId ? requestedTeamSpaceId : "");
+      setShowCreateProject(true);
+    }
+
+    window.addEventListener("workspace:open-create-project", handleOpenCreateProject as EventListener);
+
+    return () => {
+      window.removeEventListener("workspace:open-create-project", handleOpenCreateProject as EventListener);
+    };
+  }, [isManager, teamSpaces]);
+
   return (
     <>
       <Sidebar>
@@ -442,6 +470,16 @@ export function AppSidebar({ teamSpaces, currentUser }: { teamSpaces: TeamSpace[
             </div>
 
             <div className="space-y-2">
+              <Label htmlFor="project-description">Description</Label>
+              <Textarea
+                id="project-description"
+                name="description"
+                rows={3}
+                placeholder="Core platform features and APIs"
+              />
+            </div>
+
+            <div className="space-y-2">
               <Label>Team Space</Label>
               <input type="hidden" name="teamSpaceId" value={projectTeamSpaceId} />
               <div className="relative">
@@ -607,7 +645,7 @@ export function AppSidebar({ teamSpaces, currentUser }: { teamSpaces: TeamSpace[
               >
                 Cancel
               </Button>
-              <Button type="submit" disabled={!projectTeamSpaceId}>Create Project</Button>
+              <Button type="submit" className="bg-slate-200 text-slate-900 hover:bg-slate-100" disabled={!projectTeamSpaceId}>Create Project</Button>
             </DialogFooter>
           </form>
         </DialogContent>
